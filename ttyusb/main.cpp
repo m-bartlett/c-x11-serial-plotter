@@ -128,6 +128,11 @@ struct Ring {
 		for (int i=0; i < this->rindex; i++) buff[i] = this->data[i];
 	}
 
+	void print() {
+		for (int i=this->rindex; i < this->size;   i++) printf("%d ", this->data[i]);
+		for (int i=0;            i < this->rindex; i++) printf("%d ", this->data[i]);
+	}
+
 	void zero() { memset(this->data, 0, this->size); }
 
 };
@@ -179,7 +184,7 @@ int main(int argc, char *argv[]) {
 	tcdrain(fd);    /* delay for output */
 
 
-	Ring ring(300);
+	Ring ring(64);
 
 	char buf[256];
   char token_remainder[10];
@@ -211,18 +216,21 @@ int main(int argc, char *argv[]) {
 			else memset(token_remainder,0, sizeof(token_remainder));
 
 
-			for (int i=0; i < rdlen; i++) ring.insert(buf[i]);
-			
-			printf("Parsed: ");
-			for (int j=0; j<i; j++) printf("%d,",ints[j]);
+			for (int j = 0; j < i; ++j) ring.insert(ints[j]);
+			ring.print();
 			printf("\n");
 
 
-			rest = buf;
-			printf("Raw: ");
-			while ( token = strtok_r(rest, "\r\n", &rest) ) printf("%s,", token);
-			printf("\n");
-			printf("\n");
+			// printf("Parsed: ");
+			// for (int j=0; j<i; j++) printf("%d,",ints[j]);
+			// printf("\n");
+
+
+			// rest = buf;
+			// printf("Raw: ");
+			// while ( token = strtok_r(rest, "\r\n", &rest) ) printf("%s,", token);
+			// printf("\n");
+			// printf("\n");
 		}
 		else if (rdlen < 0) printf("Error from read: %d: %s\n", rdlen, strerror(errno));
 		else   /* rdlen == 0 */ printf("Timeout from read\n");
