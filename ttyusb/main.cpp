@@ -16,7 +16,7 @@ int fd;
 
 
 void sighandler(int signum) {
-   printf("Caught signal %d, coming out...\n", signum);
+   printf("Caught signal %d, cleaning up...\n", signum);
    close(fd);
    exit(1);
 }
@@ -173,6 +173,8 @@ int main(int argc, char *argv[]) {
 	}
 	set_interface_attribs(fd, baudrate);
 	// set_mincount(fd, 50);                /* set to pure timed read */
+	// set_blocking(fd, 0);                // set no blocking
+
 
 	tcdrain(fd);    /* delay for output */
 
@@ -186,12 +188,8 @@ int main(int argc, char *argv[]) {
 	do {
 		uint8_t rdlen = read(fd, buf, sizeof(buf) - 1);
 		if (rdlen > 0) {
-			if (rdlen > 64) {
-				rdlen = 64;
-				memset(buf, 0, sizeof(buf));
-				continue;
-			}
 			char tmp[rdlen + sizeof(token_remainder)]="";
+			buf[rdlen] = 0; // terminate at end of relevant bytes for strcat, else copy garbage
 			strcat(tmp, token_remainder);
 			memset(token_remainder,0, sizeof(token_remainder));
 			strcat(tmp, buf);
@@ -199,27 +197,31 @@ int main(int argc, char *argv[]) {
 			char* token; 
 			char* rest = tmp; 
 
-			printf("dicks: %d\n", rdlen);
-			bool keep_last = buf[rdlen-1] == '\n';
 			int ints[20]={0};
 			int last_element;
 			int i=0;
 
-			while ( token = strtok_r(rest, "\n", &rest) ) {
-				last_element = atoi(token);
-				ints[i] = last_element;
+			while ( token = strtok_r(rest, "\r\n", &rest) ) {
+				strcpy(token_remainder, token);
+				ints[i] = atoi(token);
 				i++;
 			}
 
-			if (!keep_last) {
-				sprintf(token_remainder,"%d",last_element);
-				i--;
-			}
+			if (buf[rdlen-1] != '\n') i--;
+			else memset(token_remainder,0, sizeof(token_remainder));
 
-			// for (int i=0; i < rdlen; i++) ring.insert(buf[i]);
+
+			for (int i=0; i < rdlen; i++) ring.insert(buf[i]);
+			
+			printf("Parsed: ");
 			for (int j=0; j<i; j++) printf("%d,",ints[j]);
 			printf("\n");
-			printf("Raw: %s", buf);
+
+
+			rest = buf;
+			printf("Raw: ");
+			while ( token = strtok_r(rest, "\r\n", &rest) ) printf("%s,", token);
+			printf("\n");
 			printf("\n");
 		}
 		else if (rdlen < 0) printf("Error from read: %d: %s\n", rdlen, strerror(errno));
