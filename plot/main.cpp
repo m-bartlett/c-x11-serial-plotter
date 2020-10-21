@@ -3,10 +3,14 @@
 #include "X11.hpp"
 #include <signal.h>
 
+int fd;
+Display* display;
 
 void sighandler(int signum) {
    printf("Caught signal %d, cleaning up...\n", signum);
    close(fd);
+   XFlush(display);
+   XCloseDisplay(display);
    exit(1);
 }
 
@@ -47,11 +51,9 @@ int main(int argc, char *argv[]) {
 	///////////////////////////////////////////////////////////////////////// X11 init
 
 
-	Display* display;
 	int screen_num;		/* number of screen to place the window on.  */
 	Window win;			/* pointer to the newly created window.      */
-	unsigned int display_width, display_height;
-	unsigned int width, height;
+	unsigned int display_width, display_height, width, height;				
 	char *display_name = getenv("DISPLAY");
 	GC gc;			
 	Colormap screen_colormap;     /* color map to use for allocating colors.   */
@@ -90,13 +92,13 @@ int main(int argc, char *argv[]) {
   XSetForeground(display, gc,  BlackPixel(display, screen_num));
   XSetBackground(display, gc,  WhitePixel(display, screen_num));
 
-
 	/////////////////////////////////////////////////////////////////////////
 
 
-	Ring ring(64);
+	Ring ring(1024);
 	char buf[256];
   char token_remainder[10];
+  XWindowAttributes winatt;
 
 	do {
 		uint8_t rdlen = read(fd, buf, sizeof(buf) - 1);
@@ -120,24 +122,22 @@ int main(int argc, char *argv[]) {
 			else memset(token_remainder,0, sizeof(token_remainder));
 			for (int j = 0; j < i; ++j) ring.insert(abs(ints[j]));
 
-			// int values[ring.size];
-			int values[ring.size]	= { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315 };
-		// ring.memcpy(values);
 
-
-
-		// TO-DO figure out how to get live width????
 
 			// Plot line
-			int tick_width = (DisplayWidth(display, screen_num) / ring.size) || 1;
+			XGetWindowAttributes(display, win, &winatt);
+			int values[ring.size];
+			// ring.memcpy(values);
+			ring.get_normalized_buffer(values, winatt.height);
+			int tick_width = (winatt.width / ring.size);
+			tick_width = tick_width ? tick_width : 1;
+			// int tick_width = 20;
 			int tick = 0;
 	    XPoint points[ring.size]; // TO-DO: replace ring.size with cli arg
 
-			for (int i = 0; i < ring.size; i++, tick += tick_width) {
-				points[i] = { tick, values[i] };
-			}
+			for (int i = 0; i < ring.size; i++, tick += tick_width) points[i] = { tick, values[i] };
+			XClearWindow(display, win);
 	    XDrawLines(display, win, gc, points, ring.size, CoordModeOrigin /* CoordModeOrigin / CoordModePrevious */);
-
 
 			// Clear screen
 			// XFillRectangle(display, win, gc, 0, 0, width, height);

@@ -9,8 +9,6 @@
 #include <string>
 #include <map>
 
-int fd;
-
 using string = std::string;
 
 

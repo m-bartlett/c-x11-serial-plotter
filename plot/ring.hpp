@@ -13,8 +13,8 @@ struct Ring {
 	Ring() { data = new int[DEFAULT_RING_SIZE]; this->size = DEFAULT_RING_SIZE; };
 	Ring(int sz) { data = new int[sz]; this->size = sz; };
 	~Ring() { delete []data; }
-	int data_min() { return data[mindex]; }
-	int data_max() { return data[maxdex]; }
+	int data_min() { return this->data[mindex]; }
+	int data_max() { return this->data[maxdex]; }
 
 	void insert(int v) {
 		this->data[rindex] = v;
@@ -45,6 +45,16 @@ struct Ring {
 		int j=0;
 		for (int i=this->rindex; i < this->size; i++, j++) buff[j] = this->data[i];
 		for (int i=0; i < this->rindex; i++, j++) buff[j] = this->data[i];
+	}
+
+	void get_normalized_buffer(int *buff, float scalar) {
+		int min = this->data[mindex];
+		int max = this->data[maxdex];
+		if (!scalar || max == min) {memset(buff, 0, this->size); return; }
+		float normalized_scalor = scalar / (max - min);
+		int i, j=0;
+		for (int i=this->rindex; i < this->size; i++, j++) buff[j] = int((this->data[i]-min) * normalized_scalor);
+		for (int i=0; i < this->rindex; i++, j++) buff[j] = int((this->data[i]-min) * normalized_scalor);
 	}
 
 	void print() {
