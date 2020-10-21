@@ -47,14 +47,14 @@ struct Ring {
 		for (int i=0; i < this->rindex; i++, j++) buff[j] = this->data[i];
 	}
 
-	void get_normalized_buffer(int *buff, float scalar) {
+	void get_scaled_buffer(int *buff, float scalar, int max) {
 		int min = this->data[mindex];
-		int max = this->data[maxdex];
+		if (!max) max = this->data[maxdex];
 		if (!scalar || max == min) {memset(buff, 0, this->size); return; }
 		float normalized_scalor = scalar / (max - min);
 		int i, j=0;
-		for (int i=this->rindex; i < this->size; i++, j++) buff[j] = int((this->data[i]-min) * normalized_scalor);
-		for (int i=0; i < this->rindex; i++, j++) buff[j] = int((this->data[i]-min) * normalized_scalor);
+		for (i=this->rindex; i < this->size; i++, j++) buff[j] = int((this->data[i]-min) * normalized_scalor);
+		for (i=0; i < this->rindex; i++, j++) buff[j] = int((this->data[i]-min) * normalized_scalor);
 	}
 
 	void print() {
