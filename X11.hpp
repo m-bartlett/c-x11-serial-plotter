@@ -1,4 +1,6 @@
 #include <X11/Xlib.h>
+//https://www.x.org/releases/X11R7.7/doc/libX11/libX11/libX11.html
+//https://github.com/QMonkey/Xlib-demo/blob/master/src/double_win.c has button press and event wait
 
 #include <stdio.h>
 #include <stdlib.h>		/* getenv(), etc. */

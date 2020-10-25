@@ -10,8 +10,8 @@ struct Ring {
 	int mindex=0;
 	int maxdex=0;
 
-	Ring() { data = new int[DEFAULT_RING_SIZE]; this->size = DEFAULT_RING_SIZE; };
-	Ring(int sz) { data = new int[sz]; this->size = sz; };
+	Ring() { data = new int[DEFAULT_RING_SIZE]; this->size = DEFAULT_RING_SIZE; memset(this->data, 0, this->size);};
+	Ring(int sz) { data = new int[sz]; this->size = sz; memset(this->data, 0, this->size); };
 	~Ring() { delete []data; }
 	int data_min() { return this->data[mindex]; }
 	int data_max() { return this->data[maxdex]; }
@@ -19,7 +19,7 @@ struct Ring {
 	void insert(int v) {
 		this->data[rindex] = v;
 		if (rindex == mindex) {
-			int min = 0xFFFFFFFF;
+			int min = 999999;
 			for (int i=0; i < this->size; i++) {
 				if (min > this->data[i]) {
 					mindex = i;

@@ -21,9 +21,10 @@ int main(int argc, char *argv[]) {
 	speed_t baudrate = B115200;
 	unsigned int sample_num = 300;
 	unsigned int sample_max = 0;
+	unsigned short fps = 60;
 	int option;
 
-	while((option = getopt(argc, argv, "p:b:x:y:")) != -1){ //get option from the getopt() method
+	while((option = getopt(argc, argv, "p:b:x:y:f:")) != -1){ //get option from the getopt() method
 	  switch(option){
 		  case 'p':
 				portname=optarg;
@@ -36,6 +37,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'y':
 				sample_max = atoi(optarg);
+				break;
+			case 'f':
+				fps = atoi(optarg);
 				break;
 	  	case ':':
 				printf("option needs a value\n");
@@ -106,6 +110,7 @@ int main(int argc, char *argv[]) {
   XWindowAttributes winatt;
 	start = system_clock::now(); 
 	unsigned int frames=0;
+	const float s_per_frame = 1.0/fps;
 
 	do {
 		uint8_t rdlen = read(fd, buf, sizeof(buf) - 1);
@@ -128,37 +133,47 @@ int main(int argc, char *argv[]) {
 			}
 			if (buf[rdlen-1] != '\n') i--; // TO-DO ring.pop(), remove ints[]
 			else memset(token_remainder,0, sizeof(token_remainder));
+			if (!i) {
+				printf("dicks\n");
+				continue;
+			}
 			for (int j = 0; j < i; ++j) ring.insert(ints[j]);
 
 
-			// Plot line
-			XGetWindowAttributes(display, win, &winatt);
-			int values[sample_num];
-			ring.get_scaled_buffer(values, winatt.height, sample_max);
-			// ring.memcpy(values);
-			float x_interval = (float(winatt.width) / sample_num);
-			float x_position = 0;
-			// unsigned short y_center = winatt.height / 2;
-			// unsigned short y_center = winatt.height / 4;
-			unsigned short y_center = 0;
-	    XPoint points[sample_num];
-
-			for (int i = 0; i < sample_num; i++, x_position += x_interval)
-				points[i] = { (unsigned short)(x_position), winatt.height - (values[i] + y_center)};
-			XClearWindow(display, win);
-	    XDrawLines(display, win, gc, points, sample_num, CoordModeOrigin /* CoordModeOrigin / CoordModePrevious */);
-
 			end = system_clock::now(); 
-
 			duration elapsed_seconds = end - start; 
-			frames++;
 
-			if( elapsed_seconds.count() >= 1){ //every second
-          printf("FPS: %d\n", frames);
-	        frames = 0;
-					start = end;	        
-	    }
-	    usleep(100);                        
+			if(elapsed_seconds.count() > s_per_frame) {
+				start = end; 
+
+				// Plot line
+				XGetWindowAttributes(display, win, &winatt);
+				int values[sample_num];
+				ring.get_scaled_buffer(values, winatt.height, sample_max);
+				// ring.memcpy(values);
+				float x_interval = (float(winatt.width) / sample_num);
+				float x_position = 0;
+				// unsigned short y_center = winatt.height / 2;
+				// unsigned short y_center = winatt.height / 4;
+				unsigned short y_center = 0;
+		    XPoint points[sample_num];
+
+				for (int i = 0; i < sample_num; i++, x_position += x_interval)
+					points[i] = { (unsigned short)(x_position), winatt.height - (values[i] + y_center)};
+				XClearWindow(display, win);
+		    XDrawLines(display, win, gc, points, sample_num, CoordModeOrigin /* CoordModeOrigin / CoordModePrevious */);
+
+				// end = system_clock::now(); 
+				// duration elapsed_seconds = end - start; 
+				// frames++;
+			}
+
+
+			// if( elapsed_seconds.count() >= 1){ //every second
+			// 	printf("FPS: %d\n", frames);
+			// 	frames = 0;
+			// 	start = end;	        
+ 			// }
 
 		}
 		else if (rdlen < 0) printf("Error from read: %d: %s\n", rdlen, strerror(errno));
