@@ -36,7 +36,7 @@ GC create_gc(Display* display, Window win, int reverse_video) {
   XSetLineAttributes(
     display,
     gc,
-    1, // line width
+    2, // line width
     LineSolid, // line style -- LineSolid, LineOnOffDash, LineDoubleDash
     CapButt, // cap style -- CapNotLast, CapButt, CapRound, CapProjecting
     JoinBevel // join style --  JoinMiter, JoinRound, or JoinBevel --- http://developer.classpath.org/doc/java/awt/doc-files/capjoin.png

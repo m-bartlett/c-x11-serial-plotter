@@ -1,9 +1,11 @@
 TARGET = main
-SOURCE_FILES=$(TARGET).* *.hpp
+SOURCE_FILES=$(TARGET).*
 # SOURCE_FILES=$(wildcard $(SOURCE_DIR)/*.c
 CC=g++
-C_FLAGS=-std=c++11
+C_FLAGS=
 LD_FLAGS=-lX11 -lXt -pthread
+LIBRARY_FLAGS=-L./lib
+INCLUDE_FLAGS=-I./include
 OBJECTS=$(SOURCE_FILES:.cpp=.o)
 
 #all: library.cpp main.cpp
@@ -14,7 +16,7 @@ OBJECTS=$(SOURCE_FILES:.cpp=.o)
 all: clean $(TARGET) run
 	
 $(TARGET):
-	$(CC) $(SOURCE_FILES) $(C_FLAGS) $(INCLUDE_FLAGS) $(LIBRARY_FLAGS) $(LD_FLAGS) -o $(TARGET)
+	$(CC) -o $(TARGET) $(SOURCE_FILES) $(C_FLAGS) $(INCLUDE_FLAGS) $(LIBRARY_FLAGS) $(LD_FLAGS)
 
 run:
 	sh -c "LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$PWD/lib ./$(TARGET)" || true
