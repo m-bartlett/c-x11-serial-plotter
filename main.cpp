@@ -14,8 +14,8 @@ Display* display;
 
 void sighandler(int signum) {
 	printf("Caught signal %d, cleaning up...\n", signum);
-	pthread_kill(serial_reader_thread, signum);
-	pthread_kill(plotter_thread, signum);
+	pthread_kill(serial_reader_thread, SIGTERM);
+	pthread_kill(plotter_thread, SIGTERM);
 	pthread_join(serial_reader_thread, NULL);
 	pthread_join(plotter_thread, NULL);
 	XFlush(display);
@@ -29,17 +29,38 @@ void sighandler(int signum) {
 string portname = "/dev/ttyUSB0";
 string binaryname;
 speed_t baudrate = B115200;
-unsigned int sample_num = 300;
-unsigned int sample_max = 0;
+unsigned int sample_num = 500;
 unsigned short fps = 60;
 int option;
+int graph_max;
+int graph_min;
 Ring ring;
+
+typedef void (*normalized_data_function_t)(int*, float);
+
+normalized_data_function_t normalized_data_functions[] = {
+	[](int *buff, float scalar ){
+		ring.get_auto_normalized_buffer(buff, scalar);
+	},
+	[](int *buff, float scalar ) {
+		ring.get_static_min_normalized_buffer(buff, scalar, graph_min);
+	},
+	[](int *buff, float scalar ) {
+		ring.get_static_max_normalized_buffer(buff, scalar, graph_max);
+	},
+	[](int *buff, float scalar ) {
+		ring.get_static_normalized_buffer(buff, scalar, graph_min, graph_max);
+	}
+};
+
+normalized_data_function_t f_get_normalized_data = normalized_data_functions[0];
 
 
 void get_opts(int argc, char *argv[]) {
 	binaryname = argv[0];
+	unsigned char graph_static_flags = 0;
 
-	while((option = getopt(argc, argv, "p:b:x:y:f:")) != -1){ //get option from the getopt() method
+	while((option = getopt(argc, argv, "p:b:x:m:M:f:")) != -1){ //get option from the getopt() method
 		switch(option){
 			case 'p':
 				portname=optarg;
@@ -50,8 +71,13 @@ void get_opts(int argc, char *argv[]) {
 			case 'x':
 				sample_num = atoi(optarg);
 				break;
-			case 'y':
-				sample_max = atoi(optarg);
+			case 'm':
+				graph_min = atoi(optarg);
+				graph_static_flags |= 1;
+				break;
+			case 'M':
+				graph_max = atoi(optarg);
+				graph_static_flags |= 2;
 				break;
 			case 'f':
 				fps = atoi(optarg);
@@ -64,7 +90,11 @@ void get_opts(int argc, char *argv[]) {
 				break;
 		 }
 	}
+
 	for(; optind < argc; optind++){ printf("Given extra arguments: %s\n", argv[optind]); }
+
+	f_get_normalized_data = normalized_data_functions[graph_static_flags];
+
 }
 
 
@@ -97,10 +127,7 @@ void *serial_reader_task(void *args) {
 				}
 				if (buf[rdlen-1] != '\n') i--; // TO-DO ring.pop(), remove ints[]
 				else memset(token_remainder,0, sizeof(token_remainder));
-				if (!i) {
-					printf("dicks\n");
-					continue;
-				}
+				if (!i) continue;
 
 				pthread_mutex_lock(&mutex);	// Insert data, lock to avoid clobbering
 				for (int j = 0; j < i; ++j) ring.insert(ints[j]);
@@ -163,8 +190,9 @@ void *plotter_task(void *args) {
 		XGetWindowAttributes(display, win, &winatt);
 
 		pthread_mutex_lock(&mutex);
-		ring.get_scaled_buffer(values, winatt.height, sample_max);
+		// ring.get_scaled_buffer(values, winatt.height, sample_max);
 		// ring.memcpy(values);
+		f_get_normalized_data(values, winatt.height);
 		pthread_mutex_unlock(&mutex);
 
 		float x_interval = (float(winatt.width) / sample_num);
@@ -197,6 +225,6 @@ int main(int argc, char *argv[]) {
 	pthread_join(serial_reader_thread, NULL);
 	pthread_join(plotter_thread, NULL);
 
-  pthread_mutex_destroy(&mutex);
-  exit(0);
+	pthread_mutex_destroy(&mutex);
+	exit(0);
 }
