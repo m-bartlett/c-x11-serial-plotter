@@ -48,7 +48,6 @@ int main()
     }
 
     pthread_mutex_destroy(&mutex);
-    printf("dicks %d\n", dicks);
 
     return 0;
 }
