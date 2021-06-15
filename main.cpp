@@ -60,7 +60,7 @@ void get_opts(int argc, char *argv[]) {
 	binaryname = argv[0];
 	unsigned char graph_static_flags = 0;
 
-	while((option = getopt(argc, argv, "p:b:x:m:M:f:")) != -1){ //get option from the getopt() method
+	while((option = getopt(argc, argv, "p:b:x:m:M:f:")) != -1) {
 		switch(option){
 			case 'p':
 				portname=optarg;
